@@ -1,0 +1,23 @@
+[server]
+# Tamanho máximo de upload (MB)
+maxUploadSize = 200
+
+# Timeout em segundos
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#1E3A8A"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F8FAFC"
+textColor = "#262730"
+font = "sans serif"
+
+[runner]
+magicEnabled = false
+
+[client]
+showErrorDetails = true
