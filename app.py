@@ -300,105 +300,112 @@ def processar_imagens(arquivos_carregados, link_drive, mostrar_processamento, mo
         
         texto_status.text(f"Processando: {nome} ({idx + 1}/{len(imagens_processar)})")
         
-        with st.expander(f"Imagem: {nome}", expanded=False):
-            coluna_esquerda, coluna_direita = st.columns(2)
-            
-            with coluna_esquerda:
-                # CORREÇÃO PRINCIPAL: Exibição da imagem
-                try:
-                    if imagem is None:
-                        st.warning("Imagem não disponível para exibição")
+        # Remover o expander externo e usar um container ou header
+        st.markdown(f"### Imagem: {nome}")
+        
+        coluna_esquerda, coluna_direita = st.columns(2)
+        
+        with coluna_esquerda:
+            # CORREÇÃO PRINCIPAL: Exibição da imagem
+            try:
+                if imagem is None:
+                    st.warning("Imagem não disponível para exibição")
+                else:
+                    # Converter BGR para RGB para exibição correta
+                    if len(imagem.shape) == 3:
+                        imagem_exibicao = cv2.cvtColor(imagem, cv2.COLOR_BGR2RGB)
                     else:
-                        # Converter BGR para RGB para exibição correta
-                        if len(imagem.shape) == 3:
-                            imagem_exibicao = cv2.cvtColor(imagem, cv2.COLOR_BGR2RGB)
-                        else:
-                            # Se for escala de cinza, converter para RGB
-                            imagem_exibicao = cv2.cvtColor(imagem, cv2.COLOR_GRAY2RGB)
-                        
-                        # Usar PIL Image para maior compatibilidade com Streamlit
-                        imagem_pil = Image.fromarray(imagem_exibicao)
-                        
-                        st.image(
-                            imagem_pil, 
-                            caption=f"Imagem original: {nome}",
-                            use_container_width=True
-                        )
-                        
-                except Exception as e:
-                    st.error(f"Erro ao exibir imagem {nome}: {str(e)}")
-                    # Tentar exibir diretamente como fallback
-                    try:
-                        st.image(imagem, caption=f"Imagem: {nome} (fallback)")
-                    except:
-                        st.error(f"Não foi possível exibir a imagem {nome}")
-            
-            with coluna_direita:
-                imagem_processada = preprocess_image(imagem)
-                
-                if mostrar_processamento and imagem_processada:
-                    # Converter imagem processada para exibição
-                    if isinstance(imagem_processada, Image.Image):
-                        imagem_processada_np = np.array(imagem_processada)
-                        if len(imagem_processada_np.shape) == 2:  # Escala de cinza
-                            imagem_processada_np = cv2.cvtColor(imagem_processada_np, cv2.COLOR_GRAY2RGB)
-                        st.image(imagem_processada_np, caption="Imagem processada", use_container_width=True)
-                
-                try:
-                    texto_ocr = pytesseract.image_to_string(
-                        imagem_processada if imagem_processada else imagem,
-                        lang='por',
-                        config=CUSTOM_CONFIG
+                        # Se for escala de cinza, converter para RGB
+                        imagem_exibicao = cv2.cvtColor(imagem, cv2.COLOR_GRAY2RGB)
+                    
+                    # Usar PIL Image para maior compatibilidade com Streamlit
+                    imagem_pil = Image.fromarray(imagem_exibicao)
+                    
+                    st.image(
+                        imagem_pil, 
+                        caption=f"Imagem original: {nome}",
+                        use_container_width=True
                     )
                     
-                    numero_vale = extract_vale_number(texto_ocr)
-                    fornecedor = extract_supplier(texto_ocr)
-                    vencimento = extract_due_date(texto_ocr)
-                    
-                    # Aplica filtro de dígitos mínimos
-                    if numero_vale and len(numero_vale) < minimo_digitos:
-                        numero_vale = None
-                    
-                    # Exibir resultados
-                    st.markdown("### Resultados da Extração")
-                    
-                    coluna1, coluna2, coluna3 = st.columns(3)
-                    
-                    with coluna1:
-                        st.metric("Número do Vale", numero_vale or "Não encontrado")
-                    with coluna2:
-                        st.metric("Fornecedor", fornecedor or "Não encontrado")
-                    with coluna3:
-                        st.metric("Data de Vencimento", vencimento or "Não encontrado")
-                    
-                    if mostrar_texto and texto_ocr.strip():
-                        with st.expander("Texto completo extraído"):
-                            chave_unica = f"texto_ocr_{nome}_{idx}_{int(time.time())}"
-                            st.text_area(
-                                "Conteúdo do OCR:",
-                                texto_ocr,
-                                height=150,
-                                key=chave_unica,
-                                label_visibility="collapsed"
-                            )
-                    
-                    resultados.append({
-                        'Arquivo': nome,
-                        'Origem': dados_imagem['tipo'],
-                        'Número do Vale': numero_vale or "Não encontrado",
-                        'Fornecedor': fornecedor or "Não encontrado",
-                        'Vencimento': vencimento or "Não encontrado"
-                    })
-                    
-                except Exception as e:
-                    st.error(f"Erro durante o OCR: {str(e)}")
-                    resultados.append({
-                        'Arquivo': nome,
-                        'Origem': dados_imagem['tipo'],
-                        'Número do Vale': 'ERRO',
-                        'Fornecedor': f'Erro: {str(e)[:50]}',
-                        'Vencimento': ''
-                    })
+            except Exception as e:
+                st.error(f"Erro ao exibir imagem {nome}: {str(e)}")
+                # Tentar exibir diretamente como fallback
+                try:
+                    st.image(imagem, caption=f"Imagem: {nome} (fallback)")
+                except:
+                    st.error(f"Não foi possível exibir a imagem {nome}")
+        
+        with coluna_direita:
+            imagem_processada = preprocess_image(imagem)
+            
+            if mostrar_processamento and imagem_processada:
+                # Converter imagem processada para exibição
+                if isinstance(imagem_processada, Image.Image):
+                    imagem_processada_np = np.array(imagem_processada)
+                    if len(imagem_processada_np.shape) == 2:  # Escala de cinza
+                        imagem_processada_np = cv2.cvtColor(imagem_processada_np, cv2.COLOR_GRAY2RGB)
+                    st.image(imagem_processada_np, caption="Imagem processada", use_container_width=True)
+            
+            try:
+                texto_ocr = pytesseract.image_to_string(
+                    imagem_processada if imagem_processada else imagem,
+                    lang='por',
+                    config=CUSTOM_CONFIG
+                )
+                
+                numero_vale = extract_vale_number(texto_ocr)
+                fornecedor = extract_supplier(texto_ocr)
+                vencimento = extract_due_date(texto_ocr)
+                
+                # Aplica filtro de dígitos mínimos
+                if numero_vale and len(numero_vale) < minimo_digitos:
+                    numero_vale = None
+                
+                # Exibir resultados
+                st.markdown("#### Resultados da Extração")
+                
+                coluna1, coluna2, coluna3 = st.columns(3)
+                
+                with coluna1:
+                    st.metric("Número do Vale", numero_vale or "Não encontrado")
+                with coluna2:
+                    st.metric("Fornecedor", fornecedor or "Não encontrado")
+                with coluna3:
+                    st.metric("Data de Vencimento", vencimento or "Não encontrado")
+                
+                # CORREÇÃO: Remover o expander aninhado
+                if mostrar_texto and texto_ocr.strip():
+                    st.markdown("---")
+                    st.markdown("**Texto completo extraído:**")
+                    chave_unica = f"texto_ocr_{nome}_{idx}_{int(time.time())}"
+                    st.text_area(
+                        "Conteúdo do OCR:",
+                        texto_ocr,
+                        height=150,
+                        key=chave_unica,
+                        label_visibility="collapsed"
+                    )
+                
+                resultados.append({
+                    'Arquivo': nome,
+                    'Origem': dados_imagem['tipo'],
+                    'Número do Vale': numero_vale or "Não encontrado",
+                    'Fornecedor': fornecedor or "Não encontrado",
+                    'Vencimento': vencimento or "Não encontrado"
+                })
+                
+            except Exception as e:
+                st.error(f"Erro durante o OCR: {str(e)}")
+                resultados.append({
+                    'Arquivo': nome,
+                    'Origem': dados_imagem['tipo'],
+                    'Número do Vale': 'ERRO',
+                    'Fornecedor': f'Erro: {str(e)[:50]}',
+                    'Vencimento': ''
+                })
+        
+        # Adicionar uma linha separadora entre imagens
+        st.markdown("---")
         
         barra_progresso.progress((idx + 1) / len(imagens_processar))
     
@@ -459,3 +466,4 @@ def processar_imagens(arquivos_carregados, link_drive, mostrar_processamento, mo
 
 if __name__ == "__main__":
     main()
+
