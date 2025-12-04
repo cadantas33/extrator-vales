@@ -257,8 +257,11 @@ def processar_imagens(arquivos_carregados, link_drive, mostrar_processamento, mo
     if arquivos_carregados:
         for arquivo in arquivos_carregados:
             try:
-                bytes_arquivo = np.asarray(bytearray(arquivo.read()), dtype=np.uint8)
-                imagem = cv2.imdecode(bytes_arquivo, cv2.IMREAD_COLOR)
+                # Ler o arquivo UMA VEZ e armazenar os bytes
+                arquivo_bytes = arquivo.read()
+                # Converter bytes para numpy array
+                bytes_array = np.asarray(bytearray(arquivo_bytes), dtype=np.uint8)
+                imagem = cv2.imdecode(bytes_array, cv2.IMREAD_COLOR)
                 
                 if imagem is not None:
                     imagens_processar.append({
@@ -266,6 +269,8 @@ def processar_imagens(arquivos_carregados, link_drive, mostrar_processamento, mo
                         'imagem': imagem,
                         'tipo': 'upload'
                     })
+                # Restaurar a posição do arquivo para possível uso futuro
+                arquivo.seek(0)
             except Exception as e:
                 st.error(f"Erro ao processar {arquivo.name}: {str(e)}")
     
@@ -299,18 +304,45 @@ def processar_imagens(arquivos_carregados, link_drive, mostrar_processamento, mo
             coluna_esquerda, coluna_direita = st.columns(2)
             
             with coluna_esquerda:
-                if len(imagem.shape) == 3:
-                    imagem_exibicao = cv2.cvtColor(imagem, cv2.COLOR_BGR2RGB)
-                else:
-                    imagem_exibicao = imagem
-                
-                st.image(imagem_exibicao, caption="Imagem original", use_container_width=True)
+                # CORREÇÃO PRINCIPAL: Exibição da imagem
+                try:
+                    if imagem is None:
+                        st.warning("Imagem não disponível para exibição")
+                    else:
+                        # Converter BGR para RGB para exibição correta
+                        if len(imagem.shape) == 3:
+                            imagem_exibicao = cv2.cvtColor(imagem, cv2.COLOR_BGR2RGB)
+                        else:
+                            # Se for escala de cinza, converter para RGB
+                            imagem_exibicao = cv2.cvtColor(imagem, cv2.COLOR_GRAY2RGB)
+                        
+                        # Usar PIL Image para maior compatibilidade com Streamlit
+                        imagem_pil = Image.fromarray(imagem_exibicao)
+                        
+                        st.image(
+                            imagem_pil, 
+                            caption=f"Imagem original: {nome}",
+                            use_container_width=True
+                        )
+                        
+                except Exception as e:
+                    st.error(f"Erro ao exibir imagem {nome}: {str(e)}")
+                    # Tentar exibir diretamente como fallback
+                    try:
+                        st.image(imagem, caption=f"Imagem: {nome} (fallback)")
+                    except:
+                        st.error(f"Não foi possível exibir a imagem {nome}")
             
             with coluna_direita:
                 imagem_processada = preprocess_image(imagem)
                 
                 if mostrar_processamento and imagem_processada:
-                    st.image(np.array(imagem_processada), caption="Imagem processada", use_container_width=True)
+                    # Converter imagem processada para exibição
+                    if isinstance(imagem_processada, Image.Image):
+                        imagem_processada_np = np.array(imagem_processada)
+                        if len(imagem_processada_np.shape) == 2:  # Escala de cinza
+                            imagem_processada_np = cv2.cvtColor(imagem_processada_np, cv2.COLOR_GRAY2RGB)
+                        st.image(imagem_processada_np, caption="Imagem processada", use_container_width=True)
                 
                 try:
                     texto_ocr = pytesseract.image_to_string(
