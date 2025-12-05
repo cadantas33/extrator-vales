@@ -329,11 +329,16 @@ def processar_imagens(arquivos_carregados, link_drive, mostrar_processamento, mo
                     
             except Exception as e:
                 st.error(f"Erro ao exibir imagem {nome}: {str(e)}")
-                # Tentar exibir diretamente como fallback
                 try:
-                    st.image(imagem, caption=f"Imagem: {nome} (fallback)")
-                except:
-                    st.error(f"Não foi possível exibir a imagem {nome}")
+                    if len(imagem.shape) == 3:
+                        imagem_fallback = cv2.cvtColor(imagem, cv2.COLOR_BGR2RGB)
+                        imagem_pil = Image.fromarray(imagem_fallback)
+                    else:
+                        imagem_pil = Image.fromarray(imagem)
+        
+                    st.image(imagem_pil, caption=f"Imagem: {nome}")
+                except Exception as fallback_error:
+                    st.error(f"Não foi possível exibir a imagem {nome}: {str(fallback_error)}")
         
         with coluna_direita:
             imagem_processada = preprocess_image(imagem)
